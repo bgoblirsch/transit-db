@@ -1,0 +1,32 @@
+maintenance_id,vehicle_id,work_date,work_performed
+1,1,2025-1-1,general cleaning
+2,2,2025-1-1,general cleaning
+3,3,2025-1-1,general cleaning
+4,5,2025-1-2,heater replacement
+5,6,2025-1-2,heater replacement
+6,8,2025-1-2,axel alignment
+7,14,2025-1-3,axel alignment
+8,9,2025-1-4,axel alignment
+9,13,2025-1-4,axel alignment
+10,14,2025-1-4,axel alignment
+11,4,2025-1-5,axel alignment
+12,6,2025-1-5,axel alignment
+13,1,2025-1-6,installed turbo encapulator
+14,3,2025-1-6,installed turbo encapulator
+15,4,2025-1-6,installed turbo encapulator
+16,7,2025-1-6,installed turbo encapulator
+17,1,2025-1-7,brake replacement
+18,1,2025-2-15,replaced broken seat
+19,3,2025-1-1,general cleaning
+20,3,2025-1-7,brake replacement
+21,4,2025-2-15,replaced broken seat
+22,7,2025-1-1,general cleaning
+23,7,2025-1-7,brake replacement
+24,7,2025-2-15,replaced broken seat
+25,9,2025-1-1,general cleaning
+26,9,2025-1-7,brake replacement
+27,9,2025-2-15,replaced broken seat
+28,11,2025-1-1,general cleaning
+29,11,2025-1-7,brake replacement
+30,11,2025-2-15,replaced broken seat
+31,12,2025-2-15,replaced broken seat

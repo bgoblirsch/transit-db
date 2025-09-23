@@ -1,0 +1,16 @@
+route_id,route_name,route_type
+1,22,bus
+2,81,bus
+3,76,bus
+4,9,bus
+5,4,bus
+6,79,bus
+7,125,bus
+8,Blue Line,metro
+9,Red Line,metro
+10,Yellow Line,metro
+11,Brown Line,metro
+12,Purple Line,metro
+13,Pink Line,metro
+14,Green Line,metro
+15,Orange Line,metro

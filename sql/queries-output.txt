@@ -1,0 +1,422 @@
+mysql> source ./queries.sql
+--------------
+-- return the maintenance records for a given vehicle
+--------------
+
+Query OK, 0 rows affected (0.00 sec)
+
+--------------
+SELECT * FROM maintenance_view
+WHERE vehicle_id = 4
+--------------
+
++------------+---------------+--------------+------------------+--------------+----------+----------------+------------+-----------------------------+
+| vehicle_id | vehicle_class | manufacturer | manufacture_year | vehicle_type | capacity | maintenance_id | work_date  | work_performed              |
++------------+---------------+--------------+------------------+--------------+----------+----------------+------------+-----------------------------+
+|          4 | bus           | New Flyer    |             2006 | standard     |       35 |             11 | 2025-01-05 | axel alignment              |
+|          4 | bus           | New Flyer    |             2006 | standard     |       35 |             15 | 2025-01-06 | installed turbo encapulator |
+|          4 | bus           | New Flyer    |             2006 | standard     |       35 |             21 | 2025-02-15 | replaced broken seat        |
++------------+---------------+--------------+------------------+--------------+----------+----------------+------------+-----------------------------+
+3 rows in set (0.00 sec)
+
+--------------
+-- return all maintenance records for vehicles matching a given manufacturer
+--------------
+
+Query OK, 0 rows affected (0.00 sec)
+
+--------------
+SELECT * FROM maintenance_view
+WHERE manufacturer = "Bombardier"
+--------------
+
++------------+---------------+--------------+------------------+--------------+----------+----------------+------------+----------------------+
+| vehicle_id | vehicle_class | manufacturer | manufacture_year | vehicle_type | capacity | maintenance_id | work_date  | work_performed       |
++------------+---------------+--------------+------------------+--------------+----------+----------------+------------+----------------------+
+|         11 | metro         | Bombardier   |             2019 | n/a          |       40 |             28 | 2025-01-01 | general cleaning     |
+|         11 | metro         | Bombardier   |             2019 | n/a          |       40 |             29 | 2025-01-07 | brake replacement    |
+|         11 | metro         | Bombardier   |             2019 | n/a          |       40 |             30 | 2025-02-15 | replaced broken seat |
+|         12 | metro         | Bombardier   |             2019 | n/a          |       40 |             31 | 2025-02-15 | replaced broken seat |
+|         13 | metro         | Bombardier   |             2019 | n/a          |       40 |              9 | 2025-01-04 | axel alignment       |
++------------+---------------+--------------+------------------+--------------+----------+----------------+------------+----------------------+
+5 rows in set (0.01 sec)
+
+--------------
+/* return vehicles that have more than x capacity and are not assigned any trips on a particular day. 
+   Tool to help with scheduling when a route requires a high capacity vehicle. */
+SELECT
+    v.vehicle_id,
+    v.capacity
+FROM Vehicle v
+LEFT JOIN Trip t
+    ON v.vehicle_id = t.vehicle_id
+    AND t.trip_date = "2025-1-1"
+WHERE v.capacity > 45
+  AND v.vehicle_class = "bus"
+  AND t.vehicle_id IS NULL
+--------------
+
++------------+----------+
+| vehicle_id | capacity |
++------------+----------+
+|          9 |       55 |
+|         10 |       55 |
++------------+----------+
+2 rows in set (0.00 sec)
+
+--------------
+/* return the timetable for a given route
+   useful for printing timetables at route stops and to be made available online */
+SELECT * FROM timetable
+WHERE route_name LIKE "22"
+--------------
+
++------------+----------------+-------------+---------------+--------------+
+| route_name | trip_direction | street_name | cross_street  | arrival_time |
++------------+----------------+-------------+---------------+--------------+
+| 22         | N              | Clark St    | Chicago Ave   |            0 |
+| 22         | N              | Clark St    | Montrose Ave  |            4 |
+| 22         | N              | Clark St    | Lawrence Ave  |            8 |
+| 22         | N              | Clark St    | Granville Ave |           12 |
+| 22         | N              | Clark St    | Chicago Ave   |           15 |
+| 22         | N              | Clark St    | Montrose Ave  |           19 |
+| 22         | N              | Clark St    | Lawrence Ave  |           23 |
+| 22         | N              | Clark St    | Granville Ave |           27 |
+| 22         | S              | Clark St    | Granville Ave |            0 |
+| 22         | S              | Clark St    | Lawrence Ave  |            4 |
+| 22         | S              | Clark St    | Montrose Ave  |            8 |
+| 22         | S              | Clark St    | Chicago Ave   |           12 |
+| 22         | S              | Clark St    | Granville Ave |           15 |
+| 22         | S              | Clark St    | Lawrence Ave  |           19 |
+| 22         | S              | Clark St    | Montrose Ave  |           23 |
+| 22         | S              | Clark St    | Chicago Ave   |           27 |
++------------+----------------+-------------+---------------+--------------+
+16 rows in set (0.00 sec)
+
+--------------
+/* return the expected arrival times for a given route at a given stop
+   supplemental table at route stops for quicker assesment of expected stop times at the specific stop */
+SELECT * FROM timetable
+WHERE 
+    route_name LIKE "22" AND 
+    cross_street LIKE "Granville Ave" AND
+    trip_direction LIKE "S"
+ORDER BY arrival_time ASC
+--------------
+
++------------+----------------+-------------+---------------+--------------+
+| route_name | trip_direction | street_name | cross_street  | arrival_time |
++------------+----------------+-------------+---------------+--------------+
+| 22         | S              | Clark St    | Granville Ave |            0 |
+| 22         | S              | Clark St    | Granville Ave |           15 |
++------------+----------------+-------------+---------------+--------------+
+2 rows in set (0.00 sec)
+
+--------------
+/* Calculate the total stops for each route and return routes with more than X stops 
+   Could be used for identifying routes with potentially too many stops. */
+SELECT
+    r.route_id,
+    r.route_name,
+    COUNT(DISTINCT rs.stop_id) AS total_stops
+FROM Route r
+JOIN route_stop rs
+    ON r.route_id = rs.route_id
+GROUP BY
+    r.route_id,
+    r.route_name
+HAVING COUNT(DISTINCT rs.stop_id) > 4
+--------------
+
++----------+------------+-------------+
+| route_id | route_name | total_stops |
++----------+------------+-------------+
+|        1 | 22         |           8 |
+|        2 | 81         |           8 |
++----------+------------+-------------+
+2 rows in set (0.00 sec)
+
+--------------
+/* return all stops that are utilized by more than one route.
+   a useful query for admins to prioritize stops which could use amenity upgrades, benches, rain cover, etc. */
+SELECT
+    s.stop_id,
+    s.stop_direction,
+    s.street_name,
+    s.cross_street,
+    s.latitude,
+    s.longitude,
+    GROUP_CONCAT(DISTINCT r.route_name) AS route_names
+FROM stop s
+JOIN route_stop rs ON s.stop_id = rs.stop_id
+JOIN route r ON rs.route_id = r.route_id
+GROUP BY 
+    s.stop_id,
+    s.stop_direction,
+    s.street_name,
+    s.cross_street,
+    s.latitude,
+    s.longitude
+HAVING COUNT(DISTINCT rs.route_id) > 1
+--------------
+
++---------+----------------+-------------+--------------+----------+-----------+-------------+
+| stop_id | stop_direction | street_name | cross_street | latitude | longitude | route_names |
++---------+----------------+-------------+--------------+----------+-----------+-------------+
+|       3 | N              | Clark St    | Lawrence Ave |  41.9686 |  -83.6674 | 22,76       |
+|       6 | S              | Clark St    | Lawrence Ave |  41.9686 |  -83.6674 | 22,76       |
++---------+----------------+-------------+--------------+----------+-----------+-------------+
+2 rows in set (0.00 sec)
+
+--------------
+-- A query for admins to check which drivers are able to drive metro vehicles
+--------------
+
+Query OK, 0 rows affected (0.00 sec)
+
+--------------
+SELECT driver_id, driver_name, driver_classification, pay FROM driver
+WHERE driver_classification LIKE "Bus and Metro" 
+OR driver_classification LIKE "Metro Only"
+--------------
+
++-----------+-----------------+-----------------------+-------+
+| driver_id | driver_name     | driver_classification | pay   |
++-----------+-----------------+-----------------------+-------+
+|         2 | Jane Doe        | Metro Only            | 39.40 |
+|         3 | Jack Reacher    | Bus and Metro         | 46.40 |
+|         4 | Jill Smith      | Bus and Metro         | 45.40 |
+|         7 | James Monroe    | Metro Only            | 39.40 |
+|         8 | Teddy Roosevelt | Bus and Metro         | 46.40 |
+|         9 | Stan Marsh      | Bus and Metro         | 45.40 |
+|        12 | Frank Abernathy | Metro Only            | 39.40 |
+|        13 | Carl Hunger     | Bus and Metro         | 46.40 |
+|        14 | Tom Hanks       | Bus and Metro         | 45.40 |
++-----------+-----------------+-----------------------+-------+
+9 rows in set (0.00 sec)
+
+--------------
+-- return all drivers that are making less than the average pay
+--------------
+
+Query OK, 0 rows affected (0.00 sec)
+
+--------------
+SELECT
+    driver_id,
+    driver_name,
+    driver_classification,
+    pay
+FROM driver
+WHERE pay < (
+    SELECT AVG(pay)
+    FROM driver
+)
+--------------
+
++-----------+-------------------+-----------------------+-------+
+| driver_id | driver_name       | driver_classification | pay   |
++-----------+-------------------+-----------------------+-------+
+|         1 | John Doe          | Bus Only              | 38.40 |
+|         2 | Jane Doe          | Metro Only            | 39.40 |
+|         5 | Adam Smith        | Bus Only              | 36.20 |
+|         6 | George Washington | Bus Only              | 38.40 |
+|         7 | James Monroe      | Metro Only            | 39.40 |
+|        10 | Rick Stevens      | Bus Only              | 36.20 |
+|        11 | Barry Allen       | Bus Only              | 38.40 |
+|        12 | Frank Abernathy   | Metro Only            | 39.40 |
+|        15 | Thomas Edison     | Bus Only              | 36.20 |
++-----------+-------------------+-----------------------+-------+
+9 rows in set (0.00 sec)
+
+--------------
+-- use dense_rank to group employees into pay brackets
+--------------
+
+Query OK, 0 rows affected (0.00 sec)
+
+--------------
+SELECT
+    driver_id,
+    driver_name,
+    driver_classification,
+    pay,
+    dense_rank() OVER (ORDER BY pay DESC) as pay_rank
+FROM driver
+--------------
+
++-----------+-------------------+-----------------------+-------+----------+
+| driver_id | driver_name       | driver_classification | pay   | pay_rank |
++-----------+-------------------+-----------------------+-------+----------+
+|         3 | Jack Reacher      | Bus and Metro         | 46.40 |        1 |
+|         8 | Teddy Roosevelt   | Bus and Metro         | 46.40 |        1 |
+|        13 | Carl Hunger       | Bus and Metro         | 46.40 |        1 |
+|         4 | Jill Smith        | Bus and Metro         | 45.40 |        2 |
+|         9 | Stan Marsh        | Bus and Metro         | 45.40 |        2 |
+|        14 | Tom Hanks         | Bus and Metro         | 45.40 |        2 |
+|         2 | Jane Doe          | Metro Only            | 39.40 |        3 |
+|         7 | James Monroe      | Metro Only            | 39.40 |        3 |
+|        12 | Frank Abernathy   | Metro Only            | 39.40 |        3 |
+|         1 | John Doe          | Bus Only              | 38.40 |        4 |
+|         6 | George Washington | Bus Only              | 38.40 |        4 |
+|        11 | Barry Allen       | Bus Only              | 38.40 |        4 |
+|         5 | Adam Smith        | Bus Only              | 36.20 |        5 |
+|        10 | Rick Stevens      | Bus Only              | 36.20 |        5 |
+|        15 | Thomas Edison     | Bus Only              | 36.20 |        5 |
++-----------+-------------------+-----------------------+-------+----------+
+15 rows in set (0.00 sec)
+
+--------------
+/* return all stops for a given route in one of its directions
+   helpful for admins to review the stops for a route */
+SELECT
+    s.stop_id,
+    r.route_name,
+    s.stop_direction,
+    s.street_name,
+    s.cross_street,
+    s.latitude,
+    s.longitude,
+    rs.stop_order
+FROM route r
+JOIN route_stop rs ON r.route_id = rs.route_id
+JOIN stop s ON rs.stop_id = s.stop_id
+WHERE r.route_name LIKE "22" AND s.stop_direction = "N"
+ORDER BY rs.stop_order ASC
+--------------
+
++---------+------------+----------------+-------------+---------------+----------+-----------+------------+
+| stop_id | route_name | stop_direction | street_name | cross_street  | latitude | longitude | stop_order |
++---------+------------+----------------+-------------+---------------+----------+-----------+------------+
+|       1 | 22         | N              | Clark St    | Chicago Ave   |  41.1286 |  -83.6674 |          1 |
+|       2 | 22         | N              | Clark St    | Montrose Ave  |  41.3461 |  -83.6674 |          2 |
+|       3 | 22         | N              | Clark St    | Lawrence Ave  |  41.9686 |  -83.6674 |          3 |
+|       4 | 22         | N              | Clark St    | Granville Ave |  42.3686 |  -83.6674 |          4 |
++---------+------------+----------------+-------------+---------------+----------+-----------+------------+
+4 rows in set (0.00 sec)
+
+--------------
+/* return the scheduled trips for a particular driver on a particular day so they know what route and vehicle they are assigned
+   to be used as a daily report for driver's daily assignments
+   In practice, this would utilize CURDATE() for the trip_date like commented query below;
+   but for the mock date, manually select a date.
+
+   SELECT * FROM driver_view
+   WHERE d.driver_name LIKE "Adam Smith" AND d.trip_date = CURDATE(); */
+SELECT * FROM driver_view
+WHERE driver_name LIKE "Adam Smith" AND trip_date = "2025-01-02"
+--------------
+
++-----------+-------------+------------+------------+----------------+------------+
+| driver_id | driver_name | trip_date  | route_name | trip_direction | vehicle_id |
++-----------+-------------+------------+------------+----------------+------------+
+|         5 | Adam Smith  | 2025-01-02 | 76         | E              |          4 |
+|         5 | Adam Smith  | 2025-01-02 | 76         | W              |          4 |
++-----------+-------------+------------+------------+----------------+------------+
+2 rows in set (0.00 sec)
+
+--------------
+/* A more general query than the above one to print a driver's schedule so they know what to expect for their upcoming assignments
+   again, in practice, you would use CURDATE() but we use a specific date for the mock data
+
+   SELECT * FROM driver_view
+   WHERE d.driver_name LIKE "John Doe" AND d.trip_date >= CURDATE(); */
+SELECT * FROM driver_view
+WHERE driver_name LIKE "John Doe" AND trip_date >= "2024-12-31"
+--------------
+
++-----------+-------------+------------+------------+----------------+------------+
+| driver_id | driver_name | trip_date  | route_name | trip_direction | vehicle_id |
++-----------+-------------+------------+------------+----------------+------------+
+|         1 | John Doe    | 2025-01-01 | 22         | N              |          1 |
+|         1 | John Doe    | 2025-01-02 | 22         | E              |          3 |
+|         1 | John Doe    | 2025-01-02 | 22         | W              |          3 |
+|         1 | John Doe    | 2025-01-01 | 81         | N              |          3 |
++-----------+-------------+------------+------------+----------------+------------+
+4 rows in set (0.00 sec)
+
+--------------
+/* A moving average example does not immediately present itself with this database. 
+   However, a reasonably plausible business request could be to derive the moving average for total vehicle capacity impacted by all maintenance each day. 
+   This would help administrators estimate how much of the fleet is out for maintenance at a given time. */
+WITH daily_totals AS (
+    SELECT
+        work_date,
+        SUM(capacity) AS daily_capacity_affected
+    FROM maintenance_view
+    GROUP BY work_date
+)
+SELECT
+    work_date,
+    daily_capacity_affected,
+    AVG(daily_capacity_affected) OVER (
+        ORDER BY work_date
+        ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING
+    ) AS "3 Day Average"
+FROM daily_totals
+ORDER BY work_date
+--------------
+
++------------+-------------------------+---------------+
+| work_date  | daily_capacity_affected | 3 Day Average |
++------------+-------------------------+---------------+
+| 2025-01-01 |                     290 |      217.5000 |
+| 2025-01-02 |                     145 |      158.3333 |
+| 2025-01-03 |                      40 |      106.6667 |
+| 2025-01-04 |                     135 |       88.3333 |
+| 2025-01-05 |                      90 |      128.3333 |
+| 2025-01-06 |                     160 |      156.6667 |
+| 2025-01-07 |                     220 |      213.3333 |
+| 2025-02-15 |                     260 |      240.0000 |
++------------+-------------------------+---------------+
+8 rows in set (0.01 sec)
+
+--------------
+-- Similar to the previous query, but additionally breaks this metric down by vehicle class (bus vs metro)
+--------------
+
+Query OK, 0 rows affected (0.00 sec)
+
+--------------
+WITH daily_totals AS (
+    SELECT
+        vehicle_class,
+        work_date,
+        SUM(capacity) AS daily_capacity_affected
+    FROM maintenance_view
+    GROUP BY
+        vehicle_class,
+        work_date
+)
+SELECT
+    vehicle_class,
+    work_date,
+    daily_capacity_affected,
+    AVG(daily_capacity_affected) OVER (
+        PARTITION BY vehicle_class
+        ORDER BY work_date
+        ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING
+    ) AS "3 Day Average"
+FROM daily_totals
+ORDER BY work_date
+--------------
+
++---------------+------------+-------------------------+---------------+
+| vehicle_class | work_date  | daily_capacity_affected | 3 Day Average |
++---------------+------------+-------------------------+---------------+
+| bus           | 2025-01-01 |                     250 |      197.5000 |
+| metro         | 2025-01-01 |                      40 |       40.0000 |
+| bus           | 2025-01-02 |                     145 |      150.0000 |
+| metro         | 2025-01-03 |                      40 |       53.3333 |
+| bus           | 2025-01-04 |                      55 |       96.6667 |
+| metro         | 2025-01-04 |                      80 |       53.3333 |
+| bus           | 2025-01-05 |                      90 |      101.6667 |
+| bus           | 2025-01-06 |                     160 |      143.3333 |
+| bus           | 2025-01-07 |                     180 |      173.3333 |
+| metro         | 2025-01-07 |                      40 |       66.6667 |
+| bus           | 2025-02-15 |                     180 |      180.0000 |
+| metro         | 2025-02-15 |                      80 |       60.0000 |
++---------------+------------+-------------------------+---------------+
+12 rows in set (0.00 sec)
+
+mysql> 

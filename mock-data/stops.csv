@@ -1,0 +1,17 @@
+stop_id,stop_direction,street_name,cross_street,latitude,longitude
+1,N,Clark St,Chicago Ave,41.128615,-83.667445
+2,N,Clark St,Montrose Ave,41.346142,-83.667445
+3,N,Clark St,Lawrence Ave,41.968623,-83.667445
+4,N,Clark St,Granville Ave,42.368615,-83.667445
+5,S,Clark St,Granville Ave,42.368615,-83.667445
+6,S,Clark St,Lawrence Ave,41.9686235,-83.667445
+7,S,Clark St,Montrose Ave,41.346142,-83.667445
+8,S,Clark St,Chicago Ave,41.128615,-83.667445
+9,E,Lawrence Ave,Kedzie Ave,41.968623,-87.867445
+10,E,Lawrence Ave,Western Ave,41.968623,-87.267432
+11,E,Lawrence Ave,Ashland Ave,41.968623,-86.967489
+12,E,Lawrence Ave,Sheridan Ave,41.968623,-86.367445
+13,W,Lawrence Ave,Sheridan Ave,41.968623,-86.367445
+14,W,Lawrence Ave,Ashland Ave,41.968623,-86.967489
+15,E,Lawrence Ave,Western Ave,41.968623,-87.267432
+16,E,Lawrence Ave,Kedzie Ave,41.968623,-87.667445

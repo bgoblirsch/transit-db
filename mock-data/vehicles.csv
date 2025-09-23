@@ -1,0 +1,17 @@
+vehicle_id,vehicle_class,manufacturer,manufacture_year,vehicle_type,capacity
+1,bus,New Flyer,2006,standard,35
+2,bus,New Flyer,2006,standard,35
+3,bus,New Flyer,2006,standard,35
+4,bus,New Flyer,2006,standard,35
+5,bus,New Flyer,2006,standard,35
+6,bus,NovaBus,2014,articulated,55
+7,bus,NovaBus,2014,articulated,55
+8,bus,NovaBus,2014,articulated,55
+9,bus,NovaBus,2014,articulated,55
+10,bus,NovaBus,2014,articulated,55
+11,metro,Bombardier,2019,n/a,40
+12,metro,Bombardier,2019,n/a,40
+13,metro,Bombardier,2019,n/a,40
+14,metro,Budd Company,1983,n/a,40
+15,metro,Budd Company,1983,n/a,40
+16,metro,Budd Company,1983,n/a,40

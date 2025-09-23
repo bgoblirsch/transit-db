@@ -1,0 +1,9 @@
+/transit-app/.venv
+transit-app/src/__pycache__/models.cpython-312.pyc
+transit-app/src/__pycache__/database.cpython-312.pyc
+transit-app/src/__pycache__/crudCLI.cpython-312.pyc
+transit-app/src/__pycache__/cli.cpython-312.pyc
+transit-app/src/__pycache__/crud.cpython-312.pyc
+transit-app/src/.DS_Store
+transit-app/.env
+transit-app/.DS_Store

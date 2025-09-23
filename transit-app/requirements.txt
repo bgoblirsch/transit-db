@@ -1,0 +1,5 @@
+python-dotenv>=1.0        
+typer>=0.12
+sqlalchemy>=2.0
+mysql-connector-python>=8.4
+rich>=13.7
