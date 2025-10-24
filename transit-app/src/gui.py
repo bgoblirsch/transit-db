@@ -147,8 +147,14 @@ class TransitApp(tk.Tk):
             self.tree.heading(col, text=col)
         self.tree.pack(fill='both', expand=True)
 
-        for d in crud.list_drivers():
-            self.tree.insert('', 'end', values=(d['driver_id'], d['driver_name'], d['driver_classification'], d['start_date'], d['pay']))
+        for driver in crud.list_drivers():
+            self.tree.insert('', 'end', values=(
+                driver['driver_id'], 
+                driver['driver_name'], 
+                driver['driver_classification'], 
+                driver['start_date'].isoformat() if driver['start_date'] else "—",
+                f"{driver['pay']:.2f}"
+            ))
 
         self.autosize_tree()
 
@@ -182,14 +188,14 @@ class TransitApp(tk.Tk):
         def submit():
             try:
                 start_date = date_entry.get()
-                if not valid_date(start_date):
+                if start_date and not valid_date(start_date):
                     messagebox.showerror("Invalid date", "Date format must be a valid date and in the format YYYY-MM-DD")
                     return
                 crud.add_driver(
-                    name_entry.get(),
-                    class_entry.get(),
-                    date_entry.get(),
-                    float(pay_entry.get())
+                    driver_name=name_entry.get(),
+                    driver_classification=class_entry.get(),
+                    start_date=start_date,
+                    pay=float(pay_entry.get())
                 )
                 form.destroy()
                 self.load_drivers()
@@ -234,7 +240,7 @@ class TransitApp(tk.Tk):
         def submit():
             try:
                 start_date = date_entry.get()
-                if not valid_date(start_date):
+                if start_date and not valid_date(start_date):
                     messagebox.showerror("Invalid date", "Date format must be a valid date and in the format YYYY-MM-DD")
                     return
                 crud.update_driver(
@@ -273,8 +279,8 @@ class TransitApp(tk.Tk):
             self.tree.heading(col, text=col)
         self.tree.pack(fill='both', expand=True)
 
-        for r in crud.list_routes():
-            self.tree.insert('', 'end', values=(r['route_id'], r['route_name'], r['route_type']))
+        for route in crud.list_routes():
+            self.tree.insert('', 'end', values=(route['route_id'], route['route_name'], route['route_type']))
 
         self.autosize_tree()
 
@@ -299,22 +305,27 @@ class TransitApp(tk.Tk):
         name_entry.grid(row=1, column=1)
 
         tk.Label(form, text="Type").grid(row=2, column=0)
-        type_entry = tk.Entry(form)
-        type_entry.grid(row=2, column=1)
+        type_dropdown = ttk.Combobox(form, values=["bus", "metro"], state="readonly")
+        type_dropdown.grid(row=2, column=1)
 
         def submit():
             try:
-                if crud.route_id_exists(id_entry.get()):
-                    messagebox.showerror("Duplicate ID", f"Route ID {id_entry.get()} already exists.")
+                route_id = int(id_entry.get())
+                if crud.route_id_exists(route_id):
+                    messagebox.showerror("Duplicate ID", f"Route ID {route_id} already exists.")
                     return
 
-                if crud.route_name_exists(name_entry.get()):
-                    messagebox.showerror("Duplicate Name", f"Route name '{name_entry.get()}' already exists.")
+                route_name = name_entry.get()
+                if crud.route_name_exists(route_name):
+                    messagebox.showerror("Duplicate Name", f"Route name '{route_name}' already exists.")
                     return
-                if type_entry.get() != "bus" or type_entry.get() != "metro":
-                    messagebox.showerror("Invalid route type", "Invalid route type. 'bus' or 'metro' only.")
+                
+                route_type = type_dropdown.get()
+                if not route_type:
+                    messagebox.showerror("Missing Type", "Please select a route type.")
                     return
-                crud.add_route(id_entry.get(), name_entry.get(), type_entry.get())
+                
+                crud.add_route(route_id, route_name, route_type)
                 form.destroy()
                 self.load_routes()
             except Exception as e:
@@ -341,22 +352,31 @@ class TransitApp(tk.Tk):
         name_entry.grid(row=0, column=1)
 
         tk.Label(form, text="Type").grid(row=1, column=0)
-        type_entry = tk.Entry(form)
-        type_entry.insert(0, route_type)
-        type_entry.grid(row=1, column=1)
+        type_dropdown = ttk.Combobox(form, values=["bus", "metro"], state="readonly")
+        type_dropdown.insert(0, route_type)
+        type_dropdown.grid(row=1, column=1)
 
         def submit():
             try:
-                if crud.route_name_exists(name_entry.get()):
-                    messagebox.showerror("Duplicate Name", f"Route name '{name_entry.get()}' already exists.")
+                new_name = name_entry.get()
+                new_type = type_dropdown.get()
+
+                if not new_type:
+                    messagebox.showerror("Missing Type", "Please select a route type.")
                     return
-                if type_entry.get() != "bus" or type_entry.get() != "metro":
-                    messagebox.showerror("Invalid route type", "Invalid route type. 'bus' or 'metro' only.")
-                    return
+
+                try:
+                    existing = crud.get_route(new_name)  # returns dict if found
+                    if existing["route_id"] != route_id:
+                        messagebox.showerror("Duplicate Name", f"Route name '{new_name}' already exists.")
+                        return
+                except Exception:
+                    pass  # no conflict, name is free to use
+                
                 crud.update_route(
                     route_id,
-                    route_name=name_entry.get(),
-                    route_type=type_entry.get()
+                    route_name=new_name,
+                    route_type=new_type
                 )
                 form.destroy()
                 self.load_routes()
@@ -371,6 +391,9 @@ class TransitApp(tk.Tk):
             item = self.tree.item(selected[0])
             route_id = item['values'][0]
             try:
+                confirm = messagebox.askyesno("Confirm Deletion", f"Are you sure you want to delete Route ID {route_id}?")
+                if not confirm:
+                    return
                 crud.delete_route(route_id)
                 self.load_routes()
             except Exception as e:
@@ -466,14 +489,14 @@ class TransitApp(tk.Tk):
         self.tree.pack(fill='both', expand=True)
 
         vehicles = crud.list_vehicles(**filters)
-        for v in vehicles:
+        for vehicle in vehicles:
             self.tree.insert('', 'end', values=(
-                v['vehicle_id'],
-                v['vehicle_class'],
-                v['manufacturer'],
-                v['manufacture_year'],
-                v['vehicle_type'],
-                v['capacity']
+                vehicle['vehicle_id'],
+                vehicle['vehicle_class'],
+                vehicle['manufacturer'],
+                vehicle['manufacture_year'],
+                vehicle['vehicle_type'],
+                vehicle['capacity']
             ))
 
         self.autosize_tree()
@@ -493,9 +516,9 @@ class TransitApp(tk.Tk):
         entries = []
         for i, label in enumerate(labels):
             tk.Label(form, text=label).grid(row=i, column=0)
-            e = tk.Entry(form)
-            e.grid(row=i, column=1)
-            entries.append(e)
+            entry = tk.Entry(form)
+            entry.grid(row=i, column=1)
+            entries.append(entry)
 
         def submit():
             try:
@@ -504,11 +527,21 @@ class TransitApp(tk.Tk):
                 if not valid_year(year):
                     messagebox.showerror("Invalid year", "Year format must be > 1900 and in the format YYYY")
                     return
+                
+                # id validation
+                vehicle_id = int(entries[0].get())
+                if vehicle_id < 0:
+                    messagebox.showerror("Invalid ID", "ID cannot be negative.")
+                    return
+                if crud.vehicle_id_exists(vehicle_id):
+                    messagebox.showerror("Duplicate ID", f"Vehicle ID {vehicle_id} already exists.")
+                    return
+                
                 crud.add_vehicle(
-                    vehicle_id=entries[0].get(),
+                    vehicle_id=vehicle_id,
                     vehicle_class=entries[1].get(),
                     manufacturer=entries[2].get(),
-                    year=int(entries[3].get()),
+                    year=year,
                     vtype=entries[4].get(),
                     capacity=int(entries[5].get())
                 )
@@ -574,10 +607,14 @@ class TransitApp(tk.Tk):
             return
         vehicle_id = self.tree.item(selected[0])['values'][0]
         try:
+            confirm = messagebox.askyesno("Confirm Deletion", f"Are you sure you want to delete Vehicle ID {vehicle_id}?")
+            if not confirm:
+                return
             crud.delete_vehicle(vehicle_id)
             self.load_vehicles()
         except Exception as e:
             messagebox.showerror("Error", str(e))
+
 
     #####################
     ## Maintenance GUI ##
@@ -857,9 +894,9 @@ class TransitApp(tk.Tk):
         entries = []
         for i, label in enumerate(labels):
             tk.Label(form, text=label).grid(row=i, column=0)
-            e = tk.Entry(form)
-            e.grid(row=i, column=1)
-            entries.append(e)
+            entry = tk.Entry(form)
+            entry.grid(row=i, column=1)
+            entries.append(entry)
 
         def submit():
             try:
@@ -895,10 +932,10 @@ class TransitApp(tk.Tk):
 
         for i, (label, val) in enumerate(zip(fields, vals)):
             tk.Label(form, text=label).grid(row=i, column=0)
-            e = tk.Entry(form)
-            e.insert(0, val)
-            e.grid(row=i, column=1)
-            entries.append(e)
+            entry = tk.Entry(form)
+            entry.insert(0, val)
+            entry.grid(row=i, column=1)
+            entries.append(entry)
 
         def submit():
             try:
@@ -982,7 +1019,6 @@ class TransitApp(tk.Tk):
                 elif field == "Vehicle ID" and val:
                     self.trip_filters["vehicle_id"] = int(val)
                 elif field == "Trip Date" and val:
-                    from datetime import datetime
                     try:
                         datetime.strptime(val, "%Y-%m-%d")  # strict validation
                         filters["trip_date"] = val
@@ -1204,7 +1240,7 @@ class TransitApp(tk.Tk):
             self.tree.heading(col, text=col)
         self.tree.pack(fill='both', expand=True)
 
-        records = crud.list_route_stops(**filters)
+        records = crud.list_route_stop(**filters)
         for record in records:
             self.tree.insert('', 'end', values=(
                 record['route_id'],
@@ -1366,7 +1402,7 @@ class TransitApp(tk.Tk):
             self.tree.heading(col, text=col)
         self.tree.pack(fill='both', expand=True)
 
-        rows = crud.list_timetable(**filters)
+        rows = crud.list_trip_stop(**filters)
         for r in rows:
             self.tree.insert('', 'end', values=(
                 r['route_name'],
@@ -1632,9 +1668,7 @@ class TransitApp(tk.Tk):
                 row["avg_days_between"]
             ))
 
-##########
-## MAIN ##
-##########
+
 if __name__ == "__main__":
     app = TransitApp()
     app.mainloop()

@@ -17,7 +17,7 @@ def add_route(
     route_type: str = typer.Option(..., "--type", "-t"),
 ):
     route = crud.add_route(route_id, name, route_type)
-    console.print(f"Added route: {route['route_name']} (ID: {route['route_id']})")
+    console.print(f"✅ Added route: {route['route_name']} (ID: {route['route_id']})")
 
 @app.command("route-get")    
 def get_route(route_name: str):
@@ -45,19 +45,20 @@ def update_route(
     rtype: str = typer.Option(None, "--type", "-t"),
 ):
     updated = crud.update_route(route_id, route_name=name, route_type=rtype)
-    console.print(f"Updated route {updated['route_id']}")
+    console.print(f"✅ Updated route {updated['route_id']}")
 
 @app.command("route-delete")
 def delete_route(route_id: int = typer.Argument(...)):
     crud.delete_route(route_id)
-    console.print(f"Deleted route {route_id}")
+    console.print(f"🗑️ Deleted route {route_id}")
+
 
 ######################
 ## Vehicle Commands ##
 ######################
 
 @app.command("vehicle-add")
-def vehicle_add(
+def add_vehicle(
     vehicle_id: int = typer.Argument(...),
     vehicle_class: str = typer.Option(..., "--class", "-c", help="Vehicle Class: Bus/Metro"),
     manufacturer: str = typer.Option(..., "--manufacturer", "-m"),
@@ -65,12 +66,14 @@ def vehicle_add(
     vehicle_type: str = typer.Option(..., "--type", "-t", help="Standard, Articulated, etc."),
     capacity: int | None = typer.Option(None, "--capacity", "-n", min=0, max=500, help="Passenger capacity"),
 ):
+    """Create a new vehicle record."""
     result = crud.add_vehicle(vehicle_id, vehicle_class, manufacturer, manufacture_year, vehicle_type, capacity)
     console.print(f"Added vehicle {result['vehicle_id']}")
 
 
 @app.command("vehicle-get")
-def vehicle_get(vehicle_id: int = typer.Argument(..., help="Vehicle ID")):
+def get_vehicle(vehicle_id: int = typer.Argument(..., help="Vehicle ID")):
+    """Show one vehicle."""
     v = crud.get_vehicle(vehicle_id)
     table = Table(title=f"Vehicle {v['vehicle_id']}")
     table.add_column("Field")
@@ -89,18 +92,19 @@ def vehicle_list(
     vehicle_type: str | None = None,
     capacity: tuple[str, int] | None = None
 ):
+    """List vehicles with optional filters."""
     vehicles = crud.list_vehicles(vehicle_id, vehicle_class, manufacturer, manufacture_year, vehicle_type, capacity)
     table = Table(title="Vehicles")
     for col in ["ID", "Class", "Manufacturer", "Year", "Type", "Capacity"]:
         table.add_column(col)
-    for vehicle in vehicles:
+    for v in vehicles:
         table.add_row(
-            str(vehicle["vehicle_id"]),
-            vehicle["vehicle_class"],
-            vehicle["manufacturer"],
-            str(["manufacture_year"]),
-            vehicle["vehicle_type"],
-            str(vehicle["capacity"]) if vehicle["capacity"] is not None else "—"
+            str(v["vehicle_id"]),
+            v["vehicle_class"],
+            v["manufacturer"],
+            str(v["manufacture_year"]),
+            v["vehicle_type"],
+            str(v["capacity"]) if v["capacity"] is not None else "—"
         )
     console.print(table)
 
@@ -114,12 +118,14 @@ def vehicle_update(
     vehicle_type: str | None = typer.Option(None, "--type", "-t"),
     capacity: int | None = typer.Option(None, "--capacity", "-n"),
 ):
+    """Update one or more fields on a vehicle."""
     result = crud.update_vehicle(vehicle_id, vehicle_class, manufacturer, manufacture_year, vehicle_type, capacity)
     console.print(f"Updated vehicle {result['vehicle_id']}")
 
 
 @app.command("vehicle-delete")
 def vehicle_delete(vehicle_id: int = typer.Argument(..., help="Vehicle ID")):
+    """Delete a vehicle by ID."""
     crud.delete_vehicle(vehicle_id)
     console.print(f"Deleted vehicle {vehicle_id}")
 
@@ -143,12 +149,12 @@ def driver_add(
 @app.command("driver-get")
 def driver_get(driver_id: int = typer.Argument(...)):
     """Retrieve a driver by ID."""
-    driver = crud.get_driver(driver_id)
-    table = Table(title=f"Driver {driver['driver_name']}")
+    d = crud.get_driver(driver_id)
+    table = Table(title=f"Driver {d['driver_name']}")
     table.add_column("Field")
     table.add_column("Value")
     for field in ["driver_id", "driver_name", "driver_classification", "start_date", "pay"]:
-        table.add_row(field, str(driver[field]))
+        table.add_row(field, str(d[field]))
     console.print(table)
 
 
@@ -159,13 +165,13 @@ def driver_list():
     table = Table(title="Drivers")
     for col in ["ID", "Name", "Class", "Start Date", "Pay"]:
         table.add_column(col)
-    for driver in drivers:
+    for d in drivers:
         table.add_row(
-            str(driver["driver_id"]),
-            driver["driver_name"],
-            driver["driver_classification"],
-            driver["start_date"].isoformat() if driver["start_date"] else "—",
-            f"{driver['pay']:.2f}"
+            str(d["driver_id"]),
+            d["driver_name"],
+            d["driver_classification"],
+            d["start_date"].isoformat() if d["start_date"] else "—",
+            f"{d['pay']:.2f}"
         )
     console.print(table)
 
@@ -188,7 +194,6 @@ def driver_delete(driver_id: int = typer.Argument(...)):
     """Delete a driver."""
     crud.delete_driver(driver_id)
     console.print(f"Deleted driver {driver_id}")
-
 
 ##########################
 ## Maintenance Commands ##
@@ -213,8 +218,8 @@ def get_maintenance(
     table = Table(title=f"Maintenance {maintenance_id}")
     table.add_column("Field", style="bold")
     table.add_column("Value")
-    for key, value in record.items():
-        table.add_row(key, str(value))
+    for k, v in record.items():
+        table.add_row(k, str(v))
     console.print(table)
 
 @app.command("maintenance-list")
@@ -231,12 +236,12 @@ def list_maintenance(
     table = Table(title="Maintenance Records")
     for col in ("ID", "Vehicle", "Date", "Work Performed"):
         table.add_column(col)
-    for record in records:
+    for r in records:
         table.add_row(
-            str(record["maintenance_id"]),
-            str(record["vehicle_id"]),
-            record["work_date"].isoformat() if record["work_date"] else "—",
-            record["work_performed"]
+            str(r["maintenance_id"]),
+            str(r["vehicle_id"]),
+            r["work_date"].isoformat() if r["work_date"] else "—",
+            r["work_performed"]
         )
     console.print(table)
 
@@ -248,7 +253,7 @@ def update_maintenance(
     work_performed: str | None = typer.Option(None),
 ):
     """Update a maintenance record."""
-    crud.update_maintenance(maintenance_id, vehicle_id, work_date, work_performed)
+    record = crud.update_maintenance(maintenance_id, vehicle_id, work_date, work_performed)
     console.print(f"Updated maintenance record {maintenance_id}")
 
 @app.command("maintenance-delete")
@@ -300,14 +305,14 @@ def list_stop(street_name: str | None = typer.Option(
     table = Table(title="Stops")
     for col in ("ID", "Dir", "Street", "Cross", "Lat", "Lon"):
         table.add_column(col)
-    for stop in stops:
+    for s in stops:
         table.add_row(
-            str(stop['stop_id']),
-            stop['stop_direction'],
-            stop['street_name'],
-            stop['cross_street'],
-            f"{stop['latitude']:.6f}" if stop['latitude'] is not None else "—",
-            f"{stop['longitude']:.6f}" if stop['longitude'] is not None else "—",
+            str(s['stop_id']),
+            s['stop_direction'],
+            s['street_name'],
+            s['cross_street'],
+            f"{s['latitude']:.6f}" if s['latitude'] is not None else "—",
+            f"{s['longitude']:.6f}" if s['longitude'] is not None else "—",
         )
     console.print(table)
     if not stops:
@@ -334,7 +339,6 @@ def delete_stop(stop_id: int = typer.Argument(...)):
     crud.delete_stop(stop_id)
     console.print(f"Deleted stop {stop_id}")
 
-
 ###############
 ## Trip CLI  ##
 ###############
@@ -356,7 +360,7 @@ def trip_add(
         trip_date=trip_date,
         trip_direction=trip_direction,
     )
-    console.print(f"Trip {trip['trip_id']} added.")
+    console.print(f"[green]Trip {trip['trip_id']} added.[/green]")
 
 
 @app.command("trip-get")
@@ -417,7 +421,6 @@ def trip_list(
         )
     console.print(table)
 
-
 @app.command("trip-update")
 def trip_update(
     trip_id: int = typer.Argument(..., help="Trip ID"),
@@ -442,10 +445,6 @@ def trip_update(
 def trip_delete(trip_id: int = typer.Argument(..., help="Trip ID")):
     crud.delete_trip(trip_id)
     console.print(f"Deleted trip {trip_id}")
-
-######################
-## Routes-Stops CLI ##
-######################
 
 @app.command("routes-stops-add")
 def routes_stops_add(
@@ -590,7 +589,7 @@ def trip_stops_update(
         else:
             arrival_time = int(arrival)
     except Exception:
-        console.print("Invalid time format. Use HH:MM or integer minutes.")
+        console.print("[red]Invalid time format. Use HH:MM or integer minutes.[/red]")
         raise typer.Exit(code=1)
 
     trip_stop = crud.update_trip_stop(trip_id=trip_id, stop_id=stop_id, arrival_time=arrival_time)
@@ -607,7 +606,6 @@ def trip_stops_delete(
 ):
     crud.delete_trip_stop(trip_id, stop_id)
     console.print(f"Deleted Trip-Stop {trip_id}-{stop_id}")
-
 
 if __name__ == "__main__":
     app()
