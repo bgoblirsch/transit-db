@@ -6,7 +6,7 @@ import tkinter as tk
 import tkinter.font as tkFont
 from tkinter import ttk, messagebox
 from sqlalchemy.exc import OperationalError
-from database import get_engine
+from database import get_engine, configure_engine
 from datetime import datetime
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -43,7 +43,7 @@ class TransitApp(tk.Tk):
             # Simulate successful login
             from database import get_engine
             engine = get_engine("admin", "admin")  # Use admin user credentials
-            crud.configure_engine(engine)
+            configure_engine(engine=engine)
             self.user_role = "admin"
             self.build_main_ui()
         else:
@@ -64,7 +64,7 @@ class TransitApp(tk.Tk):
         def try_login():
             try:
                 engine = get_engine(username_entry.get(), password_entry.get())
-                crud.configure_engine(engine)
+                configure_engine(engine=engine)
 
                 with engine.connect() as conn:
                     conn.execute(text("SELECT 1"))

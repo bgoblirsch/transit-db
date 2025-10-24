@@ -1,45 +1,10 @@
 from contextlib import contextmanager
 from sqlalchemy import select, text
 from sqlalchemy.exc import NoResultFound
-from sqlalchemy.orm import sessionmaker
-from database import SessionLocal
+from database import session_scope
 import datetime
 import decimal
 import models as m
-
-''' CLI Connection
-@contextmanager
-def session_scope():
-    session = SessionLocal()
-    try:
-        yield session
-        session.commit()
-    except:
-        session.rollback()
-        raise
-    finally:
-        session.close() '''
-
-
-''' !!! Database Connection for GUI !!! '''
-Session = sessionmaker()
-
-def configure_engine(engine):
-    """Set the SQLAlchemy engine after login (GUI use case)."""
-    Session.configure(bind=engine)
-
-
-@contextmanager
-def session_scope():
-    session = Session()
-    try:
-        yield session
-        session.commit()
-    except:
-        session.rollback()
-        raise
-    finally:
-        session.close() 
 
 ################
 ## Route CRUD ##

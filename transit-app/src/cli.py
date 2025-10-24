@@ -1,7 +1,11 @@
+from database import configure_engine
+configure_engine()
+
 import typer
 from rich.table import Table
 from rich.console import Console
 import crud
+
 
 app = typer.Typer(help="Transit CRUD CLI")
 console = Console()
